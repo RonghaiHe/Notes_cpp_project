@@ -19,5 +19,42 @@ DEFINE_string(
 
 然后是 `parseYAML("")`（只要有文件路径都会到这一步）
 
+进入该文件的 `parseYAML` 函数后，首先创建了 `YamlParser` 类，用来读取pipeline参数，然后到了这份笔记的重点：
+```C++
+parsePipelineParams(imu_params_filepath_, &imu_params_);
+```
+
+# 代码赏析
+## 代码
+```C++
+template <class T>
+inline void parsePipelineParams(const std::string& params_path,
+                                T* pipeline_params) {
+  CHECK_NOTNULL(pipeline_params);
+  static_assert(std::is_base_of<PipelineParams, T>::value,
+                "T must be a class that derives from PipelineParams.");
+  // Read/define tracker params.
+  if (params_path.empty()) {
+    LOG(WARNING) << "No " << pipeline_params->name_
+                 << " parameters specified, using default.";
+    *pipeline_params = T();  // default params
+  } else {
+    VLOG(100) << "Using user-specified " << pipeline_params->name_
+              << " parameters: " << params_path;
+    pipeline_params->parseYAML(params_path);
+  }
+}
+```
+
+## 简介
+代码传入参数文件路径 `params_path` 和参数pipeline（指针类型） `pipeline_params`：
+1. 通过 `glog` 里的函数 `CHECK_NOTNULL` 确定是否指针是否为空
+2. 通过 `static_assert` 确定指针类型是否继承自 `PipelineParams`
+3. if语句判断参数路径是否为空，是则警告，否则通过 `VLOG` 记录下来并进入该指针对应的函数，即：`pipeline_params->parseYAML(params_path);`
+
+## 分析
+- 对于调用该函数的代码，`imu_params_filepath_` 是IMU参数文件的路径，`imu_params_` 是在 `/include/kimera-vio/pipeline/Pipeline-definitions.h` 里结构体 `VioParams` 定义的，类型为 `ImuParams`
+-  `ImuParams` 是在 `/include/kimera-vio/imu-frontend/ImuFrontendParams.h` 中定义的结构体
+-  
 
 [Kimera-VIO]: https://github.com/MIT-SPARK/Kimera-VIO "Kimera-VIO"
